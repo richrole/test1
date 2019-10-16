@@ -1,0 +1,458 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+    <div class="home-page" id="app">
+        <div class="cw-search-box">
+            <i-form :model="searchInfo" :label-width="100">
+                <Row gutter="15">
+                    <i-col span="6">
+                        <Form-item label="考试名称：">
+                                <i-input v-model="searchInfo.name"  placeholder="请输入..."></i-input>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="考试地点：">
+                                <i-input v-model="searchInfo.addr"  placeholder="请输入..."></i-input>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="考试类型：">
+                                <i-select v-model="searchInfo.type" clearable>
+                                    <i-option v-for="item in types" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+                                </i-select>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="考试负责人：" prop="res">
+                            <i-select v-model="searchInfo.res" clearable>
+                                <i-option v-for="item in users" :value="item.bk_username" :key="item.bk_username">{{ item.bk_username }}</i-option>
+                            </i-select>
+                    </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <FormItem>
+                            <i-button type="primary" @click="searchWork" style="margin:0 15px 0 20px">查询</i-button>
+                        </FormItem>
+                         <FormItem>
+                            <i-button type="primary" @click="createDrawer=true" style="margin:0 15px 0 5px">创建</i-button>
+                        </FormItem>
+                    </i-col>
+                </Row>
+            </i-form>
+            <!-- 脚本表格 -->
+            <i-table stripe :columns="columns" :data="data" style="margin-top: 30px"></i-table>
+        </div>
+        <Drawer title="创建考试"
+            v-model="createDrawer"
+            :closable="false"
+            :mask-closable="false"
+            width="900">
+            <div style="padding: 0 15px">
+                <i-form
+                    :model="formItem"
+                    ref="formItem"
+                    :rules="ruleValidate"
+                    :label-width="80">
+                    <Form-item label="业务：" prop="biz_id">
+                            <i-select v-model="formItem.biz_name" @on-change="bizChange" clearable>
+                                <i-option v-for="item in biz" :value="item.label" :key="item.label">{{ item.label }}</i-option>
+                            </i-select>
+                    </Form-item>
+                    <Form-item label="考试名称：" prop="name">
+                        <i-input v-model="formItem.name" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="考试类型：" prop="type">
+                            <i-select v-model="formItem.type" clearable>
+                                <i-option v-for="item in types" :value="item.label" :key="item.label">{{ item.label }}</i-option>
+                            </i-select>
+                    </Form-item>
+                    <Form-item label="考试负责人：" prop="res">
+                        <i-select v-model="formItem.res" clearable>
+                            <i-option v-for="item in users" :value="item.bk_username" :key="item.bk_username">{{ item.bk_username }}</i-option>
+                        </i-select>
+                    </Form-item>
+                    <Form-item label="考试负责人联系方式：" prop="phone">
+                        <i-input v-model="formItem.phone" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="考试日期：" prop="biz_name">
+                            <Date-picker type="date" :options="formItem.test_date" placeholder="选择日期" style="width: 200px"></Date-picker>
+                    </Form-item>
+                    <Form-item label="考试地点：" prop="addr">
+                        <i-input v-model="formItem.addr" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <form-item label="考试题目">
+                        <!-- <input style="margin-bottom: 5px" type="file" ref="tempFile"> -->
+                        <upload :action="formItem.test_title" :on-success="uploadSuccess" ref="fileUpload">
+                            <i-button icon="ios-cloud-upload-outline">点击上传</i-button>
+                        </upload>
+                    </form-item>
+                    <Form-item>
+                        <div class="cw-btn-group">
+                            <i-button type="primary" @click="summit" style="margin-right: 15px">确定</i-button>
+                            <i-button type="normal" @click="cancel">取消</i-button>
+                        </div>
+                    </Form-item>
+                </i-form>
+            </div>
+        </Drawer>
+        <Drawer title="工单详情"
+            v-model="detailDrawer"
+            :closable="false"
+            :mask-closable="false"
+            width="900">
+            <div style="padding: 0 15px">
+                <i-form
+                    :model="detailItem"
+                    ref="detailItem"
+                    :rules="ruleValidate"
+                    :label-width="80">
+                    <Form-item label="标题：" prop="title">
+                        <i-input v-model="detailItem.title" :disabled="enable"></i-input>
+                    </Form-item>
+                    <Form-item label="审批人：" prop="approver">
+                        <i-select v-model="detailItem.approver" :disabled="enable" clearable>
+                            <i-option v-for="item in users" :value="item.bk_username" :key="item.bk_username">{{ item.bk_username }}</i-option>
+                        </i-select>
+                    </Form-item>
+                    <Form-item label="业务：" clearable prop="biz_name">
+                            <i-select v-model="detailItem.biz_name" :disabled="enable" @on-change="bizChangeDetail">
+                                <i-option v-for="item in biz" :value="item.label" :key="item.label">{{ item.label }}</i-option>
+                            </i-select>
+                    </Form-item>
+                    <Form-item label="主机：" prop="ip">
+                            <i-select v-model="detailItem.ip" :disabled="enable" clearable>
+                                <i-option v-for="item in ips" :value="item.bk_host_innerip" :key="item.bk_host_innerip">{{ item.bk_host_innerip }}</i-option>
+                            </i-select>
+                    </Form-item>
+                    <Form-item label="工单内容：" prop="content">
+                        <i-input v-model="detailItem.content" :disabled="enable" type="textarea" :rows="2"></i-input>
+                    </Form-item>
+                    <Form-item label="状态：" prop="status">
+                        <i-input v-model="detailItem.status" disabled ></i-input>
+                    </Form-item>
+                    <Form-item label="创建人：" prop="creator">
+                        <i-input v-model="detailItem.creator" disabled ></i-input>
+                    </Form-item>
+                    <Form-item label="创建时间：" prop="create_time">
+                        <i-input v-model="detailItem.create_time" disabled ></i-input>
+                    </Form-item>
+                    <Form-item label="更新时间：" prop="create_time">
+                        <i-input v-model="detailItem.create_time" disabled ></i-input>
+                    </Form-item>
+                    <Form-item label="驳回意见：" prop="rejection">
+                        <i-input v-model="detailItem.rejection" type="textarea" disabled :rows="2"></i-input>
+                    </Form-item>
+                    <Form-item>
+                        <div class="cw-btn-group">
+                            <i-button type="primary" @click="detailEdit" style="margin-right: 15px" :disabled="enableEdit">编辑</i-button>
+                            <i-button type="primary" @click="update" style="margin-right: 15px" :disabled="enableEdit">提交</i-button>
+                            <i-button type="normal" @click="cancel">取消</i-button>
+                        </div>
+                    </Form-item>
+                </i-form>
+            </div>
+        </Drawer>
+    </div>
+</%block>
+<script>
+    new Vue({
+     el: '#app',
+     data: function () {
+       return {
+           createDrawer: false,
+           detailDrawer: false,
+           enable: true,
+           defaultEnable: true,
+           enableEdit: true,
+           data: [],
+           columns: [
+               {
+                   title: '业务名称',
+                   key: 'biz_name'
+               },
+               {
+                   title: '考试名称',
+                   key: 'name'
+               },
+               {
+                   title: '考试类型',
+                   key: 'type'
+               },
+               {
+                   title: '考试时间',
+                   key: 'test_date'
+               },
+               {
+                   title: '考试状态',
+                   key: ''
+               },
+               {
+                   title: '考试地点',
+                   key: 'addr'
+               },
+               {
+                   title: '操作',
+                   key: 'action',
+                   render: (h, params) => {
+                    return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.detailPage(params.row.id)
+                                        }
+                                    }
+                                }, '详情'),
+                                 h('Button', {
+                                    props: {
+                                        type: 'error',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.delete(params.row.id)
+                                        }
+                                    }
+                                }, '删除')
+                           ])
+                   }
+               }
+            ],
+           biz_id: '',
+           biz: [],
+           searchInfo: {
+               name: '',
+               addr: '',
+               type: '',
+               res: ''
+           },
+           formItem: {
+               biz_id: '',
+               biz_name: '',
+               name: '',
+               type: '',
+               res: '',
+               phone: '',
+               test_date: '',
+               addr: '',
+               test_title: ''
+           },
+           detailItem: {
+               id: '',
+               title: '',
+               approver: '',
+               biz_id: '',
+               biz_name: '',
+               ip: '',
+               status: '',
+               creator: '',
+               create_time: '',
+               update_time: '',
+               content: '',
+               rejection: ''
+           },
+           saveStatus: {
+               saved: '保存',
+               submission: '审核中',
+               refuse: '拒绝'
+           },
+           types: [
+               {
+                   label:'运维开发工程师',
+                   value:'运维开发工程师'
+               },
+               {
+                   label:'运维自动化工程师',
+                   value:'运维自动化工程师'
+               }
+           ],
+           users: [],
+           ips: [],
+           ruleValidate: {
+                    title: [
+                        { required: true, message: '标题不能为空', trigger: 'blur' }
+                    ],
+                    approver: [
+                        { required: true, message: '审批人不能为空', trigger: 'change' }
+                    ],
+                    biz_name: [
+                        { required: true, message: '业务不能为空', trigger: 'change' }
+                    ],
+                    ip: [
+                        { required: true, message: '主机不能为空', trigger: 'change' }
+                    ]
+           },
+           hostInfo: {
+               type: ''
+           }
+       }
+     },
+    methods: {
+        uploadSuccess: function(response, file, filelist){
+            // debugger
+            this.temp.ck_list = response.data
+        },
+        cancel(){
+            this.createDrawer = false
+            this.detailDrawer = false
+            this.defaultEnable = true
+            this.formItem.title = ''
+            this.formItem.approver = ''
+            this.formItem.biz_name = ''
+            this.formItem.ip = ''
+            this.formItem.content = ''
+        },
+        detailPage(id){
+            this.enableEdit = true
+            axios.get(site_url + "work_manage/detail/", {params: {id: id}}).then(res=>{
+                console.log(res)
+                this.detailItem.title = res.data.title
+                this.detailItem.approver = res.data.approver
+                this.detailItem.biz_name = res.data.biz_name
+                this.detailItem.content = res.data.content
+                this.detailItem.create_time = res.data.create_time
+                this.detailItem.ip = res.data.ip
+                this.detailItem.id = res.data.id
+                this.detailItem.status = res.data.status
+                this.detailItem.rejection = res.data.rejection
+                this.detailItem.update_time = res.data.update_time
+                this.detailItem.creator = res.data.create_user
+                this.hostInfo.type = res.data.biz_id
+                if (res.data.status == '保存' || res.data.status == '拒绝'){
+                    this.enableEdit = false
+                }
+                this.searchHost()
+            })
+            this.detailDrawer = true
+        },
+         getBiz: function(){
+            axios.get(site_url + 'host/biz/').then(res => {
+                this.biz = res.data.data
+            })
+         },
+         bizNameSearch(value){
+            for (let i = 0;i < this.biz.length;i++) {
+                if (this.biz[i].label == value) {
+                    this.formItem.biz_id = this.biz[i].value
+                    this.detailItem.biz_id = this.biz[i].value
+                }
+            }
+         },
+        searchHost() {
+            axios.get(site_url + "host/list/", {
+                params: this.hostInfo
+            }).then(res=>{
+                this.ips = res.data.data
+            })
+        },
+        bizChange(){
+            this.defaultEnable = false
+            this.bizNameSearch(this.formItem.biz_name)
+            this.hostInfo.type = this.formItem.biz_id
+            this.searchHost()
+        },
+        bizChangeDetail(){
+            this.bizNameSearch(this.detailItem.biz_name)
+            this.hostInfo.type = this.detailItem.biz_id
+            this.searchHost()
+        },
+        //查询工单
+        searchWork(){
+            axios.get(site_url + "work_manage/list/", {
+                    params: this.searchInfo
+                }).then(res=>{
+                    this.data = res.data
+            })
+        },
+        //保存
+        save(){
+            this.formItem.status = this.saveStatus.saved
+            this.$refs['formItem'].validate((valid) => {
+                if (valid) {
+                    this.ajaxTo()
+                } else {
+                    this.$Message.error('表单存在未填字段!');
+                }
+            })
+        },
+        //提交工单
+         summit(){
+            this.formItem.status = this.saveStatus.submission
+             this.ajaxTo()
+
+         },
+        ajaxTo(){
+            this.bizNameSearch(this.formItem.biz_name)
+            axios.post(site_url + "test_page/save/", this.formItem).then(res => {
+                this.cancel()
+                if (res.data.result) {
+                    this.$Message.success('创建工单成功');
+                } else {
+                    this.$Message.error('创建工单失败');
+                }
+            })
+        },
+        update(){
+            this.bizNameSearch(this.detailItem.biz_name)
+            this.detailItem.status = '审核中'
+            this.$refs['detailItem'].validate((valid) => {
+                if (valid) {
+                        axios.put(site_url + "work_manage/update/", this.detailItem).then(res => {
+                        this.cancel()
+                        if (res.data.result) {
+                            this.$Message.success('提交成功');
+                        } else {
+                            this.$Message.error('提交失败');
+                        }
+                        this.searchWork()
+                    })
+                } else {
+                    this.$Message.error('表单存在未填字段!');
+                }
+            })
+
+        },
+        detailEdit(){
+            if (this.enable == true) {
+                this.enable = !this.enable
+            }else {
+
+            }
+
+        },
+        getUsers(){
+            axios.get(site_url + 'work_manage/users/').then(res => {
+                this.users = res.data
+            })
+        },
+        delete(id){
+            axios.delete(site_url + "work_manage/delete/",{params: {id: id}}).then(res => {
+                    if (res.data.result) {
+                        this.$Message.success('删除成功');
+                        this.searchWork()
+                    } else {
+                        this.$Message.error('删除失败');
+                    }
+            })
+        }
+
+    },
+    mounted: function (){
+        this.getBiz()
+        this.searchWork()
+        this.getUsers()
+    }
+   })
+</script>
+
+<style>
+</style>

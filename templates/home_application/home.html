@@ -1,0 +1,417 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+    <div class="home-page" id="app">
+        <div class="cw-search-box">
+            <i-form :model="searchInfo" :label-width="100">
+                <Row gutter="15">
+                    <i-col span="6">
+                        <Form-item label="脚本名称：">
+                                <i-input v-model="searchInfo.name"  placeholder="请输入..."></i-input>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="创建人：">
+                                <i-input v-model="searchInfo.creator" placeholder="请输入..."></i-input>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="创建时间：">
+                            <div class="cw-date-picker">
+                                <Date-Picker @on-change="handleDateChange" type="daterange" v-model="created_time" format="yyyy-MM-dd HH:mm:ss" ></DatePicker>
+                            </div>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="脚本类型：">
+                                <i-select v-model="searchInfo.type">
+                                    <i-option v-for="item in type" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+                                </i-select>
+                        </Form-item>
+                    </i-col> 
+                    <i-col span="6">
+                        <Form-item label="脚本来源：">
+                                <i-select v-model="searchInfo.source">
+                                    <i-option v-for="item in source" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+                                </i-select>
+                        </Form-item>
+                    </i-col> 
+                    <i-col span="6">
+                        <FormItem>
+                            <i-button type="primary" @click="search" style="margin:0 15px 0 20px">查询</i-button>
+                            <i-button type="normal" @click="clear">清空</i-button>
+                        </FormItem>
+                    </i-col>
+                </Row>
+                <FormItem>
+                    <i-button type="primary" @click="createDrawer=true" style="margin:0 15px 0 5px">新增</i-button>
+                </FormItem>
+            </i-form>
+            <!-- 脚本表格 -->
+            <i-table stripe :columns="columns" :data="data" style="margin-top: 30px"></i-table>
+        </div>
+        <Drawer title="新建脚本"
+            v-model="createDrawer"
+            :closable="false"
+            :mask-closable="false"
+            width="900">
+            <div style="padding: 0 15px">
+                <i-form 
+                    :model="formItem" 
+                    ref="formItem" 
+                    :rules="ruleValidate"
+                    :label-width="80">
+                    <Form-item label="脚本名称：" prop="name">
+                        <i-input v-model="formItem.name" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="脚本描述：">
+                        <i-input v-model="formItem.desc" type="textarea" :rows="4" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="脚本内容：" prop="content">
+                        <i-input v-model="formItem.content" type="textarea" :rows="6" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="脚本来源：" prop="source">
+                        <Radio-Group v-model="formItem.source">
+                            <Radio class="cw-radio" v-for="(item, index) in source" :key="index" :label="item.label"></Radio>
+                        </Radio-Group>
+                    </Form-item>
+                    <Form-item label="脚本类型：" prop="type">
+                        <Radio-Group v-model="formItem.type">
+                            <Radio class="cw-radio" v-for="(item, index) in type" :key="index" :label="item.label"></Radio>
+                        </Radio-Group>
+                    </Form-item>
+                    <Form-item>
+                        <div class="cw-btn-group">
+                            <i-button type="primary" @click="handleCreate" style="margin-right: 15px">确定</i-button>
+                            <i-button type="normal" @click="cancel">取消</i-button>
+                        </div>
+                    </Form-item>
+                </i-form>
+            </div>
+        </Drawer>
+        <Drawer title="编辑脚本"
+            v-model="editDrawer"
+            :closable="false"
+            :mask-closable="false"
+            width="900">
+            <div style="padding: 0 15px">
+                <i-form 
+                    ref="script"
+                    :model="script" 
+                    :rules="ruleValidate"
+                    :label-width="80">
+                    <Form-item label="脚本名称：" prop="name">
+                        <i-input v-model="script.name" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="版本描述：">
+                        <i-input v-model="script.desc" type="textarea" :rows="4" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="脚本内容：" prop="content">
+                        <i-input v-model="script.content" type="textarea" :rows="6" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item label="脚本来源：" prop="source">
+                        <Radio-Group v-model="script.source">
+                            <Radio class="cw-radio" v-for="(item, index) in source" :key="index" :label="item.label"></Radio>
+                        </Radio-Group>
+                    </Form-item>
+                    <Form-item label="脚本类型：" prop="type">
+                        <Radio-Group v-model="script.type">
+                            <Radio class="cw-radio" v-for="(item, index) in type" :key="index" :label="item.label"></Radio>
+                        </Radio-Group>
+                    </Form-item>
+                    <Form-item label-width="0">
+                        <div class="cw-btn-group">
+                            <i-button type="primary" @click="handleUpdate">修改</i-button>
+                            <i-button type="normal" @click="cancel">取消</i-button>
+                        </div>
+                    </Form-item>
+                </i-form>
+            </div>
+        </Drawer>
+    </div>
+</%block>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: function () {
+            return {
+                editDrawer: false,
+                detailDrawer: false,
+                createDrawer: false,
+                created_time: '',
+                formItem: {
+                    name: '',
+                    desc: '',
+                    content: '',
+                    type: '',
+                    source: '',
+                },
+                columns: [
+                    {
+                        title: '名称',
+                        key: 'name'
+                    },
+                    {
+                        title: '脚本来源',
+                        key: 'source'
+                    },
+                    {
+                        title: '脚本类型',
+                        key: 'type'
+                    },
+                    {
+                        title: '版本号',
+                        key: 'version'
+                    },
+                    {
+                        title: '创建人',
+                        key: 'creator'
+                    },
+                    {
+                        title: '创建时间',
+                        key: 'created_time'
+                    },
+                    {
+                        title: '操作',
+                        key: 'actiono',
+                        render: (h, params) => {
+                            return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.edit(params.row.id)
+                                        }
+                                    }
+                                }, 'Edit'),
+                                h('Button', {
+                                    props: {
+                                        type: 'error',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.delete(params.row.id)
+                                        }
+                                    }
+                                }, 'Delete')
+                            ]);
+                        }
+                    }
+                ],
+                data: [],
+                type: [
+                    { 
+                        label: "shell",
+                        value: "shell"
+                    },
+                    { 
+                        label: "bat",
+                        value: "bat"
+                    },
+                    { 
+                        label: "perl",
+                        value: "perl"
+                    },
+                    { 
+                        label: "python",
+                        value: "python"
+                    },
+                    { 
+                        label: "powershell",
+                        value: "powershell"
+                    }
+                ],
+                source: [
+                    {
+                        label: '手工录入',
+                        value: '手工录入'
+                    },
+                    {
+                        label: '脚本克隆',
+                        value: '脚本克隆'
+                    },
+                    {
+                        label: '本地脚本',
+                        value: '本地脚本'
+                    }
+                ],
+                searchInfo: {
+                    name: '',
+                    desc: '',
+                    start_time: '',
+                    end_time: '',
+                    type: '',
+                    source: '',
+                    creator: ''
+                },
+                script: '',
+                ruleValidate: {
+                    name: [
+                        { required: true, message: '脚本名称不能为空', trigger: 'blur' }
+                    ],
+                    content: [
+                        { required: true, message: '脚本内容不能为空', trigger: 'blur' }
+                    ],
+                    type: [
+                        { required: true, message: '脚本类型不能为空', trigger: 'blur' }
+                    ],
+                    source: [
+                        { required: true, message: '脚本来源不能为空', trigger: 'blur' }
+                    ]
+                }
+            }
+        },
+        methods: {
+            // 处理日期变化事件
+            handleDateChange(arr) {
+                this.searchInfo.start_time = arr[0]
+                if (arr[1] !== '') {
+                    let date = new Date(new Date(arr[1]).getTime() + 24*60*60*1000-1)
+                    this.searchInfo.end_time = this.format(date)
+                }
+            },
+            // 创建脚本事件
+            handleCreate() {
+                this.$refs['formItem'].validate((valid) => {
+                    if (valid) {
+                        this.create()
+                    } else {
+                        this.$Message.error('表单存在未填字段!');
+                    }
+                })
+                
+            },
+            // 创建脚本
+            create() {
+                axios.post(site_url + "script/", this.formItem).then(res => {
+                    this.cancel()
+                    if (res.data.result) {
+                        this.$Message.success('添加脚本成功');
+                    } else {
+                        this.$Message.error('添加脚本失败');
+                    }
+                    this.search()
+                })
+            },
+            // 条件查询
+            search() {
+                axios.get(site_url + "script/", {
+                    params: this.searchInfo
+                }).then(res=>{
+                    this.data = res.data
+                })
+            },
+            // 清除查询条件
+            clear() {
+                this.erase(this.searchInfo)
+                this.search()
+            },
+            // 隐藏抽屉
+            cancel() {
+                this.editDrawer = false
+                this.createDrawer = false
+                this.erase(this.script)
+                this.erase(this.formItem)
+            },
+            // 处理脚本编辑事件
+            edit(id) {
+                this.script = ''
+                axios.get(site_url + "script/" + id).then(res => {
+                    this.script = res.data
+                    this.editDrawer = true
+                })
+            },
+            // 处理脚本更新时间
+            handleUpdate() {
+                this.$refs['script'].validate((valid) => {
+                    if (valid) {
+                        this.update()
+                    } else {
+                        this.$Message.error('表单存在未填字段!');
+                    }
+                })
+            },
+            // 更新脚本
+            update() {
+                axios.put(site_url + "script/", this.script).then(res => {
+                    this.cancel()
+                    if (res.data.result) {
+                        this.$Message.success('更新脚本成功');
+                    } else {
+                        this.$Message.error('更新脚本失败');
+                    }
+                    this.search()
+                })
+            },
+            // 属性擦除
+            erase(data) {
+                Object.keys(data).forEach(key => {
+                    data[key] = ''
+                })
+            },
+            // 删除脚本
+            delete(id) {
+                axios.delete(site_url + "script/" + id).then(res => {
+                    if (res.data.result) {
+                        this.$Message.success('删除脚本成功');
+                    } else {
+                        this.$Message.error('删除脚本失败');
+                    }
+                    this.search()
+                })
+            },
+            // 日期格式化
+            format(date) {
+                fmt = 'yyyy-MM-dd HH:mm:ss'
+                let o = {
+                    'y+': date.getFullYear(),
+                    'M+': date.getMonth() + 1,                 //月份
+                    'd+': date.getDate(),                    //日
+                    'H+': date.getHours(),                   //小时
+                    'm+': date.getMinutes(),                 //分
+                    "s+": date.getSeconds(),                 //秒
+                    'S+': date.getMilliseconds()             //毫秒
+                }
+                for (var k in o) {
+                    if (new RegExp('(' + k + ')').test(fmt)){
+                    if(k == 'y+'){
+                        fmt = fmt.replace(RegExp.$1, ('' + o[k]).substr(4 - RegExp.$1.length));
+                    }
+                    else if(k=='S+'){
+                        var lens = RegExp.$1.length;
+                        lens = lens==1?3:lens;
+                        fmt = fmt.replace(RegExp.$1, ('00' + o[k]).substr(('' + o[k]).length - 1,lens));
+                    }
+                    else{
+                        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
+                    }
+                    }
+                }
+                return fmt;
+            }
+        },
+        created() {
+            this.search()    
+        }
+    })
+</script>
+<style>
+.cw-search-box {padding: 10px}
+.cw-radio {width: 60px}
+.cw-btn-group {display: flex; justify-content: center}
+.cw-btn-group > button {margin-right: 10px}
+
+.cw-date-picker {display: flex}
+.cw-date-picker .ivu-date-picker {flex: 0 0 100%}
+</style>

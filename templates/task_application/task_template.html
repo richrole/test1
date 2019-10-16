@@ -1,0 +1,370 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+<div class="home-page" id="app">
+    <i-select style="width:200px" v-model="biz_id"  placeholder="请选择业务" clearable @on-change="bizSearch">
+        <!--<i-option v-for="item in biz" :value="item.bk_biz_id" :key="item.bk_biz_id">{{ item.bk_biz_name }}</i-option> -->
+        <i-option v-for="item in biz" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+    </i-select>
+    <i-select style="width:200px" v-model="type" placeholder="请选择类型" clearable @on-change="typeSearch">
+        <i-option v-for="item in temp_type" :value="item.lable" :key="item.value">{{ item.lable }}</i-option>
+    </i-select>
+    <i-input style="width: 200px" placeholder="请输入名称" v-model="name"></i-input>
+    <i-button type="primary" @click="getTemp">查询</i-button>
+    <i-button type="primary" @click="openAdd">添加</i-button>
+    <div style="border-bottom: 1px solid">
+        <Scroll height="400">
+            <i-table :columns="columns" :data="temps"></i-table>
+        </Scroll>
+    </div>
+    <div v-if="taskDetailShow">
+        <h3 style="margin-bottom: 5px">待办任务详情</h3>
+        <span style="margin-bottom: 5px">业务名称：<b>{{task.biz_name}}</b>，模板类型：<b>{{task.temp_type}}</b>，模板名称：<b>{{task.temp_name}}，操作识别号：<b>{{task.action_num}}</b></span>
+        <i-button type="primary" @click="postTask">发布任务</i-button>
+        <Scroll height="400">
+            <i-table :columns="checkListColumns" :data="checkLists"></i-table>
+        </Scroll>
+    </div>
+    <Modal
+        v-model="templateShow"
+        title="添加模板"
+        @on-ok="templateOk"
+        @on-cancel="templateCancel"
+        ok-text="提交"
+        cancel-text="取消">
+        <i-form :model="temp" :label-width="60">
+            <form-item label="业务名称">
+                <i-select v-model="temp.biz_id" style="width:200px" @on-change="bizChange">
+                    <!--<i-option v-for="item in biz" :value="item.bk_biz_id" :key="item.bk_biz_id">{{ item.bk_biz_name }}</i-option> -->
+                    <i-option v-for="item in biz" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+                </i-select>
+            </form-item>
+            <form-item label="模板类型">
+                <i-select v-model="temp._type" style="width:200px">
+                    <i-option v-for="item in temp_type" :value="item.lable" :key="item.value">{{ item.lable }}</i-option>
+                </i-select>
+            </form-item>
+            <form-item label="模板名称">
+                <i-input style="margin-bottom: 5px" type="text" v-model="temp.name">
+                </i-input>
+            </form-item>
+            <form-item label="导入模板">
+                <!-- <input style="margin-bottom: 5px" type="file" ref="tempFile"> -->
+                <upload :action="upload_addr" :on-success="uploadSuccess" ref="fileUpload">
+                    <i-button icon="ios-cloud-upload-outline">点击上传</i-button>
+                </upload>
+            </form-item>
+        </i-form>
+    </Modal>
+    <Modal
+        v-model="taskShow"
+        title="创建待办"
+        @on-ok="taskOk"
+        @on-cancel="taskCancel"
+        ok-text="确定"
+        cancel-text="取消">
+        <i-form :model="task" :label-width="60">
+            <form-item label="业务名称">
+                <i-input style="margin-bottom: 5px" type="text" v-model="task.biz_name" disabled>
+                </i-input>
+            </form-item>
+            <form-item label="模板类型">
+                <i-input style="margin-bottom: 5px" type="text" v-model="task.temp_type" disabled>
+                </i-input>
+            </form-item>
+            <form-item label="模板名称">
+                <i-input style="margin-bottom: 5px" type="text" v-model="task.temp_name" disabled>
+                </i-input>
+            </form-item>
+            <form-item label="操作识别号">
+                <i-input style="margin-bottom: 5px" type="text" v-model="task.action_num">
+                </i-input>
+            </form-item>
+        </i-form>
+    </Modal>
+</div>
+</%block>
+<script>
+    new Vue({
+     el: '#app',
+     data: function () {
+       return {
+           upload_addr: site_url + 'task_template/file_upload/',
+           templateShow: false,
+           taskShow: false,
+           taskDetailShow: false,
+           biz: [],
+           biz_id: '',
+           name: '',
+           type: '',
+           temp: {
+               biz_id: '',
+               biz_name: '',
+               _type: '',
+               name: '',
+               ck_list: []
+           },
+           task: {
+               biz_id: '',
+               biz_name: '',
+               temp_id: null,
+               temp_name: '',
+               temp_type: '',
+               action_num: ''
+           },
+           checkListColumns: [
+               {
+                   title: '步骤序号',
+                   key: 'seq'
+               },
+               {
+                   title: '操作事项',
+                   key: 'item'
+               },
+               {
+                   title: '备注',
+                   key: 'remark'
+               },
+               {
+                   title: '责任人',
+                   key: 'resp'
+               }
+           ],
+           checkLists: [],
+           columns: [
+               {
+                    type: 'index',
+                    width: 60,
+                    align: 'center'
+               },
+               {
+                   type: 'selection',
+                   width: 60,
+                   align: 'center'
+               },
+               {
+                   title: '模板名称',
+                   key: 'name'
+               },
+               {
+                   title: '业务名称',
+                   key: 'biz_name'
+               },
+               {
+                   title: '模板类型',
+                   key: '_type'
+               },
+               {
+                   title: '创建人',
+                   key: 'create_user'
+               },
+               {
+                   title: '创建时间',
+                   key: 'create_time'
+               },
+               {
+                   title: '修改人',
+                   key: 'update_user'
+               },
+               {
+                   title: '修改时间',
+                   key: 'update_time'
+               },
+               {
+                   title: '操作',
+                   key: 'action',
+                   render: (h, params) => {
+                       return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.createTask(params)
+                                        }
+                                    }
+                                }, '创建待办'),
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.download(params)
+                                        }
+                                    }
+                                }, '下载模板'),
+                                h('Button', {
+                                    props: {
+                                        type: 'error',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.delete(params)
+                                        }
+                                    }
+                                }, '删除')
+                           ])
+                   }
+               }
+           ],
+           temps: [],
+           temp_type: [
+               {
+                   lable: '变更发布',
+                   value: '变更发布'
+               },
+               {
+                   lable: '扩缩容',
+                   value: '扩缩容'
+               },
+               {
+                   lable: '上线类',
+                   value: '上线类'
+               },
+               {
+                   lable: '下架类',
+                   value: '下架类'
+               },
+               {
+                   lable: '例行维护',
+                   value: '例行维护'
+               },
+           ]
+       }
+     },
+    methods: {
+        getBiz: function(){
+            axios.get(site_url + 'host/biz/').then(res => {
+                this.biz = res.data.data
+            })
+        },
+        openAdd: function(){
+            this.templateShow= !this.templateShow
+        },
+        createTask: function(params){
+            this.taskShow = !this.taskShow
+            this.task.biz_id = params.row.biz_id
+            this.task.biz_name = params.row.biz_name
+            this.task.temp_id = params.row.id
+            this.task.temp_name = params.row.name
+            this.task.temp_type = params.row._type
+        },
+        download: function(params){
+            window.open(site_url + 'task_template/download/?temp_id=' + params.row.id)
+        },
+        delete: function(params){
+            let self = this
+            axios.get(site_url + 'task_template/delete/?id=' + params.row.id).then(res => {
+                if(res.data.result){
+                    self.$Message.success('删除成功')
+                    self.getTemp()
+                }
+            })
+        },
+        getTemp: function(){
+            axios.get(site_url + 'task_template/temp_list/?biz_id=' + this.biz_id + '&name=' + this.name + '&_type=' + this.type).then(res => {
+                this.temps = res.data.data
+            })
+        },
+        templateOk: function(){
+            let self = this
+            for (i=0;i<self.biz.length;i++){
+                if (self.biz[i].value == self.temp.biz_id) {
+                    self.temp.biz_name = self.biz[i].label
+                }
+            }
+            axios.post(site_url + 'task_template/save_temp/', this.temp).then(res => {
+                if(res.data.result){
+                    self.$Message.success('模板保存成功')
+                    self.temp.biz_id = ''
+                    self.temp.biz_name = ''
+                    self.temp._type = ''
+                    self.temp.name = ''
+                    self.temp.ck_list = []
+                    self.$refs.fileUpload.clearFiles()
+                    self.getTemp()
+                }
+            })
+        },
+        templateCancel: function(){},
+        uploadSuccess: function(response, file, filelist){
+            // debugger
+            this.temp.ck_list = response.data
+        },
+        bizChange: function(curr){
+            this.biz.forEach(item => {
+                if(item.bk_biz_id == curr){
+                    this.temp.biz_name = item.bk_biz_name
+                }
+            });
+        },
+        bizSearch: function(curr){
+            if(typeof(curr) != 'undefined'){
+                this.biz_id = curr
+            } else{
+                this.biz_id = ''
+            }
+
+
+        },
+        typeSearch: function(curr){
+            if(typeof(curr) != 'undefined'){
+                this.type = curr
+            } else{
+                this.type = ''
+            }
+        },
+        taskOk: function(){
+            let self = this
+            self.taskDetailShow = !self.taskDetailShow
+            axios.get(site_url + 'task_template/check_list/?temp_id=' + self.task.temp_id).then(res => {
+                self.checkLists = res.data.data
+            })
+        },
+        taskCancel:function(){
+            this.task.biz_id = ''
+            this.task.biz_name = ''
+            this.task.temp_id = null
+            this.task.temp_name = ''
+            this.task.temp_type = ''
+            this.task.action_num = ''
+        },
+        postTask: function(){
+            let self = this
+            axios.post(site_url + 'task_template/save_task/', self.task).then(res => {
+                if(res.data.result){
+                    self.$Message.info('任务发布成功')
+                    self.task.biz_id = ''
+                    self.task.biz_name = ''
+                    self.task.temp_id = null
+                    self.task.temp_name = ''
+                    self.task.temp_type = ''
+                    self.task.action_num = ''
+                    self.taskDetailShow = !self.taskDetailShow
+                }
+            })
+        }
+    },
+    mounted: function (){
+        this.getBiz(),
+        this.getTemp()
+    }
+   })
+</script>
+
+<style>
+</style>

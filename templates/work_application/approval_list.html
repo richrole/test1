@@ -1,0 +1,240 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+    <div class="home-page" id="app">
+        <div class="cw-search-box">
+            <i-form :model="searchInfo" :label-width="100">
+                <Row gutter="15">
+                    <i-col span="6">
+                        <Form-item label="标题：">
+                                <i-input v-model="searchInfo.title"  placeholder="请输入..."></i-input>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <Form-item label="状态：">
+                                <i-select v-model="searchInfo.status" clearable>
+                                    <i-option v-for="item in statuses" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+                                </i-select>
+                        </Form-item>
+                    </i-col>
+                    <i-col span="6">
+                        <FormItem>
+                            <i-button type="primary" @click="searchWork" style="margin:0 15px 0 20px">查询</i-button>
+                        </FormItem>
+                    </i-col>
+                </Row>
+            </i-form>
+            <!-- 脚本表格 -->
+            <i-table stripe :columns="columns" :data="data" style="margin-top: 30px"></i-table>
+        </div>
+        <Drawer title="驳回详情"
+            v-model="detailDrawer"
+            :closable="false"
+            :mask-closable="false"
+            width="900">
+            <div style="padding: 0 15px">
+                <i-form
+                    :model="detailItem"
+                    ref="detailItem"
+                    :rules="ruleValidate"
+                    :label-width="80">
+                    <Form-item label="驳回意见：" prop="rejection">
+                        <i-input v-model="detailItem.rejection" type="textarea" :rows="8" placeholder="请输入..."></i-input>
+                    </Form-item>
+                    <Form-item>
+                        <div class="cw-btn-group">
+                            <i-button type="primary" @click="validateClick" style="margin-right: 15px">提交</i-button>
+                            <i-button type="normal" @click="cancel">取消</i-button>
+                        </div>
+                    </Form-item>
+                </i-form>
+            </div>
+        </Drawer>
+    </div>
+</%block>
+<script>
+    new Vue({
+     el: '#app',
+     data: function () {
+       return {
+           detailDrawer: false,
+           enable: true,
+           data: [],
+           columns: [
+                {
+                    type: 'index',
+                    width: 60,
+                    align: 'center'
+               },
+               {
+                   type: 'selection',
+                   width: 60,
+                   align: 'center'
+               },
+               {
+                   title: '标题',
+                   key: 'title'
+               },
+               {
+                   title: '创建人',
+                   key: 'create_user'
+               },
+               {
+                   title: '业务',
+                   key: 'biz_name'
+               },
+               {
+                   title: '主机',
+                   key: 'ip'
+               },
+               {
+                   title: '操作',
+                   key: 'action',
+                   render: (h, params) => {
+                    return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.adopt(params.row.id)
+                                        }
+                                    }
+                                }, '通过'),
+                                h('Button', {
+                                    props: {
+                                        type: 'error',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.rejectPage(params.row.id)
+                                        }
+                                    }
+                                }, '驳回')
+                           ])
+                   }
+               }
+            ],
+           biz_id: '',
+           biz: [],
+           searchInfo: {
+               title: '',
+               status: ''
+           },
+           detailItem: {
+               id: '',
+               status: '',
+               rejection: '',
+               refuse: ''
+           },
+           saveStatus: {
+               saved: '已保存',
+               submission: '已提交',
+               refuse: '已拒绝'
+           },
+           statuses: [
+               {
+                   label:'审核中',
+                   value:'审核中'
+               },
+               {
+                   label:'通过',
+                   value:'通过'
+               },
+               {
+                   label:'保存',
+                   value:'保存'
+               },
+               {
+                   label:'拒绝',
+                   value:'拒绝'
+               }
+
+           ],
+           ruleValidate: {
+                rejection: [
+                    { required: true, message: '驳回意见不能为空', trigger: 'blur' }
+                ]
+           },
+       }
+     },
+    methods: {
+        cancel(){
+            this.detailDrawer = false
+            this.detailItem.rejection = ''
+        },
+        rejectPage(id){
+            this.detailItem.id = id
+            this.detailDrawer = true
+        },
+         getBiz: function(){
+            axios.get(site_url + 'host/biz/').then(res => {
+                this.biz = res.data.data
+            })
+         },
+         bizSearch: function(curr){
+            if(typeof(curr) != 'undefined'){
+                this.biz_id = curr
+            } else{
+                this.biz_id = ''
+            }
+         },
+        //查询工单
+        searchWork(){
+            axios.get(site_url + "work_manage/approvals/", {
+                    params: this.searchInfo
+                }).then(res=>{
+                    this.data = res.data
+            })
+        },
+        validateClick(){
+            this.$refs['detailItem'].validate((valid) => {
+                if (valid) {
+                    this.summit()
+                } else {
+                    this.$Message.error('表单存在未填字段!');
+                }
+            })
+        },
+        summit(){
+            this.detailItem.status = '拒绝'
+            this.detailItem.refuse = 'refuse'
+            axios.put(site_url + "work_manage/approve/", this.detailItem).then(res => {
+                    this.cancel()
+                    if (res.data.result) {
+                        this.$Message.success('提交成功');
+                        this.detailItem.rejection = ''
+                    } else {
+                        this.$Message.error('提交失败');
+                    }
+                    this.searchWork()
+            })
+
+        },
+        adopt(id){
+            this.detailItem.id = id
+            this.detailItem.status = '通过'
+            axios.put(site_url + "work_manage/approve/", this.detailItem).then(res => {
+                    this.searchWork()
+            })
+        }
+
+    },
+    mounted: function (){
+        this.getBiz()
+        this.searchWork()
+    }
+   })
+</script>
+
+<style>
+</style>

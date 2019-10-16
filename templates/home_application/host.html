@@ -1,0 +1,78 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+    <div class="home-page" id="app">
+        <div class="wrapper">
+            <i-form :model="formItem" :label-width="100">
+                <Form-item label="脚本名称：">
+                    <i-input v-model="formItem.name" style="width: 300px" placeholder="请输入..."></i-input>
+                </Form-item>
+                <Form-item label="创建人：">
+                    <i-input v-model="formItem.type" style="width: 300px" placeholder="请输入..."></i-input>
+                </Form-item>
+                <Form-item label="创建时间：">
+                    <i-input v-model="formItem.type" style="width: 300px" placeholder="请输入..."></i-input>
+                </Form-item>
+                <Form-item label="脚本类型：">
+                    <i-input v-model="formItem.type" style="width: 300px" placeholder="请输入..."></i-input>
+                </Form-item>
+                <Form-item label="脚本来源：">
+                    <i-input v-model="formItem.type" style="width: 300px" placeholder="请输入..."></i-input>
+                </Form-item>
+                <FormItem>
+                    <i-button type="primary" @click="query">查询</i-button>
+                </FormItem>
+            </i-form>
+            <i-table stripe :columns="columns" :data="data"></Table>
+        </div>
+    </div>
+</%block>
+<script>
+    new Vue({
+        el: '#app',
+        data: function () {
+            return {
+                formItem: {
+                    input: '',
+                    type: '',
+                    source: '',
+                    name: '',
+                },
+                columns: [
+                    {
+                        title: '名称',
+                        key: 'name'
+                    },
+                    {
+                        title: '版本号',
+                        key: 'version'
+                    },
+                    {
+                        title: '脚本来源',
+                        key: 'source'
+                    },
+                    {
+                        title: '脚本类型',
+                        key: 'type'
+                    },
+                    {
+                        title: '创建时间',
+                        key: 'time'
+                    }
+                ],
+                data: []
+            }
+        },
+        methods: {
+            query() {
+                axios.get(site_url + "query/").then(res=>{
+                    this.data = res.data
+                })
+            }
+        },
+        created() {
+        }
+    })
+</script>
+<style>
+</style>

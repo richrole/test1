@@ -1,0 +1,365 @@
+<%inherit file="/base.html"/>
+
+<%block name="content">
+<div class="home-page" id="app">
+    <i-select style="width:200px" v-model="biz_id"  placeholder="请选择业务" clearable @on-change="bizSearch">
+        <!--<i-option v-for="item in biz" :value="item.bk_biz_id" :key="item.bk_biz_id">{{ item.bk_biz_name }}</i-option> -->
+        <i-option v-for="item in biz" :value="item.value" :key="item.value">{{ item.label }}</i-option>
+    </i-select>
+    <i-select style="width:200px" v-model="type" placeholder="请选择模板类型" clearable @on-change="typeSearch">
+        <i-option v-for="item in temp_type" :value="item.lable" :key="item.value">{{ item.lable }}</i-option>
+    </i-select>
+    <i-select style="width:200px" v-model="status" placeholder="请任务状态" clearable @on-change="statusSearch">
+        <i-option v-for="item in statusList" :value="item.lable" :key="item.value">{{ item.lable }}</i-option>
+    </i-select>
+    <i-input style="width: 200px" placeholder="请输入创建人" v-model="create_user"></i-input>
+    <i-input style="width: 200px" placeholder="请输入模板名称" v-model="temp_name"></i-input>
+    <i-input style="width: 200px" placeholder="请输入操作识别号" v-model="action_num"></i-input>
+    <i-button type="primary" @click="getTask">查询</i-button>
+    <div style="border-bottom: 1px solid">
+        <Scroll height="400">
+            <i-table :columns="columns" :data="taskLists"></i-table>
+        </Scroll>
+    </div>
+    <div v-if="taskDetailShow">
+        <h3 style="margin-bottom: 5px">待办任务详情</h3>
+        <span style="margin-bottom: 5px">业务名称：<b>{{task.biz_name}}</b>，模板类型：<b>{{task.temp_type}}</b>，模板名称：<b>{{task.temp_name}}，操作识别号：<b>{{task.action_num}}</b></span>
+        <i-button type="primary" @click="backToTask">返回列表</i-button>
+        <Scroll height="400">
+            <i-table :columns="checkListColumns" :data="checkLists"></i-table>
+        </Scroll>
+    </div>
+    <Modal
+        v-model="confimTaskShow"
+        title="处理工作项"
+        @on-ok="confirmTaskOk"
+        @on-cancel="confirmTaskCancel"
+        ok-text="提交"
+        cancel-text="取消"
+        width="1024">
+        <Scroll height="600">
+            <i-table :columns="confirmColumns" :data="checkLists"></i-table>
+        </Scroll>
+    </Modal>
+</div>
+</%block>
+<script>
+    new Vue({
+     el: '#app',
+     data: function () {
+       return {
+        confimTaskShow: false,
+            taskDetailShow: false,
+            taskLists: [],
+            columns: [
+                {
+                    type: 'index',
+                    width: 60,
+                    align: 'center'
+               },
+               {
+                   type: 'selection',
+                   width: 60,
+                   align: 'center'
+               },
+               {
+                   title: '模板名称',
+                   key: 'temp_name'
+               },
+               {
+                   title: '业务名称',
+                   key: 'biz_name'
+               },
+               {
+                   title: '操作识别号',
+                   key: 'action_num'
+               },
+               {
+                   title: '模板类型',
+                   key: 'temp_type'
+               },
+               {
+                   title: '可操作者',
+                   key: 'create_user'
+               },
+               {
+                   title: '创建人',
+                   key: 'create_user'
+               },
+               {
+                   title: '创建时间',
+                   key: 'create_time'
+               },
+               {
+                   title: '状态',
+                   key: 'status'
+               },
+               {
+                   title: '操作',
+                   key: 'action',
+                   render: (h, params) => {
+                    return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.showTask(params)
+                                        }
+                                    }
+                                }, '查看'),
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small'
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.doNext(params)
+                                        }
+                                    }
+                                }, '待办')
+                           ])
+                   }
+               }
+            ],
+            biz_id: '',
+            type: '',
+            status: '',
+            create_user: '',
+            temp_name: '',
+            action_num: '',
+            statusList: [
+                {
+                    lable: '待操作',
+                    value: '待操作'
+                },
+                {
+                    lable: '操作中',
+                    value: '操作中'
+                },
+                {
+                    lable: '已完成',
+                    value: '已完成'
+                }
+            ],
+            temp_type: [
+                {
+                   lable: '变更发布',
+                   value: '变更发布'
+               },
+               {
+                   lable: '扩缩容',
+                   value: '扩缩容'
+               },
+               {
+                   lable: '上线类',
+                   value: '上线类'
+               },
+               {
+                   lable: '下架类',
+                   value: '下架类'
+               },
+               {
+                   lable: '例行维护',
+                   value: '例行维护'
+               },
+            ],
+            biz: [],
+            task: {
+               biz_id: '',
+               biz_name: '',
+               temp_id: null,
+               temp_name: '',
+               temp_type: '',
+               action_num: ''
+           },
+           checkListColumns: [
+                {
+                   title: '步骤序号',
+                   key: 'seq'
+               },
+               {
+                   title: '操作事项',
+                   key: 'item'
+               },
+               {
+                   title: '备注',
+                   key: 'remark'
+               },
+               {
+                   title: '责任人',
+                   key: 'resp'
+               },
+               {
+                   title: '状态',
+                   key: 'status'
+               },
+               {
+                   title: '确认人',
+                   key: 'confirm_user'
+               },
+               {
+                   title: '确认时间',
+                   key: 'confirm_time'
+               }
+           ],
+           confirmColumns: [
+               {
+                   type: 'selection',
+                   width: 40,
+                   align: 'center'
+               },
+                {
+                   title: '步骤序号',
+                   key: 'seq'
+               },
+               {
+                   title: '操作事项',
+                   key: 'item'
+               },
+               {
+                   title: '备注',
+                   key: 'remark'
+               },
+               {
+                   title: '责任人',
+                   key: 'resp'
+               },
+               {
+                   title: '状态',
+                   key: 'status'
+               },
+               {
+                   title: '确认人',
+                   key: 'confirm_user'
+               },
+               {
+                   title: '确认时间',
+                   key: 'confirm_time'
+               },
+               {
+                   title: '操作',
+                   render: (h, params) => {
+                            return h('div', [
+                                h('Button', {
+                                    props: {
+                                        type: 'primary',
+                                        size: 'small',
+                                        disabled: params.row.disabled
+                                    },
+                                    style: {
+                                        marginRight: '5px'
+                                    },
+                                    on: {
+                                        click: () => {
+                                            this.confirmTask(params)
+                                        }
+                                    }
+                                }, '确认完成')
+                           ])
+                   }
+               }
+           ],
+           checkLists: [],
+           currentRow: {}
+       }
+     },
+    methods: {
+        getTask: function(){
+            axios.get(site_url + 'task_template/task_list/?biz_id=' + this.biz_id + '&temp_type=' + this.type + '&status=' + this.status + '&create_user=' + this.create_user + '&temp_name=' + this.temp_name + '&action_num=' + this.action_num).then(res => {
+                this.taskLists = res.data.data
+            })
+        },
+        getBiz: function(){
+            axios.get(site_url + 'host/biz/').then(res => {
+                this.biz = res.data.data
+            })
+        },
+        bizSearch: function(curr){
+            if(typeof(curr) != 'undefined'){
+                this.biz_id = curr
+            } else{
+                this.biz_id = ''
+            }
+        },
+        typeSearch: function(curr){
+            if(typeof(curr) != 'undefined'){
+                this.type = curr
+            } else{
+                this.type = ''
+            }
+        },
+        statusSearch: function(curr){
+            if(typeof(curr) != 'undefined'){
+                this.status = curr
+            } else{
+                this.status = ''
+            }
+        },
+        showTask: function(params){
+            if(this.taskDetailShow){
+                this.taskDetailShow = !this.taskDetailShow
+            }
+            let row = params.row
+            this.task.biz_id = row.biz_id
+            this.task.biz_name = row.biz_name
+            this.task.temp_id = row.temp_id,
+            this.task.temp_name = row.temp_name
+            this.task.temp_type = row.temp_type
+            this.task.action_num = row.action_num
+            let self = this
+            self.taskDetailShow = !self.taskDetailShow
+            axios.get(site_url + 'task_template/check_list_more/?temp_id=' + self.task.temp_id + '&task_id=' + params.row.id).then(res => {
+                self.checkLists = res.data.data
+            })
+        },
+        doNext: function(params){
+            this.currentRow = params.row
+            this.confimTaskShow = !this.confimTaskShow
+            if(this.confimTaskShow){
+                let self = this
+                axios.get(site_url + 'task_template/check_list_more/?temp_id=' + params.row.temp_id + '&task_id=' + params.row.id).then(res => {
+                    self.checkLists = res.data.data
+                })
+            }
+        },
+        backToTask: function(){
+            this.taskDetailShow = !this.taskDetailShow
+        },
+        confirmTaskOk: function(){
+            this.getTask()
+        },
+        confirmTaskCancel: function(){
+            this.getTask()
+        },
+        confirmTask: function(params){
+            let self = this
+            axios.get(site_url + 'task_template/confirm_task/?taskItemId=' + params.row.taskItemId).then(res => {
+                if(res.data.result){
+                    self.$Message.success('确认成功')
+                    params.row.disabled = true
+                    axios.get(site_url + 'task_template/check_list_more/?temp_id=' + self.currentRow.temp_id + '&task_id=' + self.currentRow.id).then(res => {
+                        self.checkLists = res.data.data
+                    })
+                }
+            })
+        }
+    },
+    mounted: function (){
+        this.getTask()
+        this.getBiz()
+    }
+   })
+</script>
+
+<style>
+</style>
