@@ -28,9 +28,9 @@ from django.conf.global_settings import *  # noqa
 # BK_PAAS_HOST = 'https://ios.corp.hq.csg'
 
 APP_ID = 'rich'
-APP_TOKEN = 'df0f22e4-ccc6-44fc-8cba-e464bdb02193'
+APP_TOKEN = '7ba2dc14-d15c-4c2e-bfc4-74bff2d410df'
 # 蓝鲸智云开发者中心的域名，形如：http://paas.bking.com
-BK_PAAS_HOST = 'http://paas.bk.com'
+BK_PAAS_HOST = 'http://paas.dev1.com'
 
 # 请求官方 API 默认版本号，可选值为："v2" 或 ""；其中，"v2"表示规范化API，""表示未规范化API
 DEFAULT_BK_API_VER = 'v2'
