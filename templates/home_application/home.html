@@ -6,40 +6,23 @@
             <i-form :model="searchInfo" :label-width="100">
                 <Row gutter="15">
                     <i-col span="6">
-                        <Form-item label="脚本名称：">
+                        <Form-item label="小组名称：">
                                 <i-input v-model="searchInfo.name"  placeholder="请输入..."></i-input>
                         </Form-item>
                     </i-col>
                     <i-col span="6">
-                        <Form-item label="创建人：">
-                                <i-input v-model="searchInfo.creator" placeholder="请输入..."></i-input>
+                        <Form-item label="小组管理员：">
+                                <i-input v-model="searchInfo.name"  placeholder="请输入..."></i-input>
                         </Form-item>
                     </i-col>
                     <i-col span="6">
-                        <Form-item label="创建时间：">
-                            <div class="cw-date-picker">
-                                <Date-Picker @on-change="handleDateChange" type="daterange" v-model="created_time" format="yyyy-MM-dd HH:mm:ss" ></DatePicker>
-                            </div>
+                        <Form-item label="小组成员：">
+                                <i-input v-model="searchInfo.name"  placeholder="请输入..."></i-input>
                         </Form-item>
                     </i-col>
-                    <i-col span="6">
-                        <Form-item label="脚本类型：">
-                                <i-select v-model="searchInfo.type">
-                                    <i-option v-for="item in type" :value="item.value" :key="item.value">{{ item.label }}</i-option>
-                                </i-select>
-                        </Form-item>
-                    </i-col> 
-                    <i-col span="6">
-                        <Form-item label="脚本来源：">
-                                <i-select v-model="searchInfo.source">
-                                    <i-option v-for="item in source" :value="item.value" :key="item.value">{{ item.label }}</i-option>
-                                </i-select>
-                        </Form-item>
-                    </i-col> 
                     <i-col span="6">
                         <FormItem>
                             <i-button type="primary" @click="search" style="margin:0 15px 0 20px">查询</i-button>
-                            <i-button type="normal" @click="clear">清空</i-button>
                         </FormItem>
                     </i-col>
                 </Row>

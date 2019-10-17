@@ -16,18 +16,7 @@
                                 <i-input v-model="searchInfo.creator" placeholder="请输入..."></i-input>
                             </Form-item>
                         </i-col>
-                        <i-col span="6">
-                            <Form-item label="创建时间">
-                                <Date-Picker type="daterange" v-model="searchInfo.createdDate" format="yyyy-MM-dd" ></DatePicker>
-                            </Form-item>
-                        </i-col>
-                        <i-col span="6">
-                            <Form-item label="脚本类型：">
-                                <i-select v-model="searchInfo.type">
-                                    <i-option v-for="item in type" :value="item.value" :key="item.value">{{ item.label }}</i-option>
-                                </i-select>
-                            </Form-item>
-                        </i-col> 
+
                     </Row>
                     <Row gutter="15">
                         <i-col span="6">
