@@ -28,7 +28,7 @@ from django.conf.global_settings import *  # noqa
 # BK_PAAS_HOST = 'https://ios.corp.hq.csg'
 
 APP_ID = 'rich'
-APP_TOKEN = '7ba2dc14-d15c-4c2e-bfc4-74bff2d410df'
+APP_TOKEN = 'fba15b6d-7593-44e2-ad00-6be0e906c4df'
 # 蓝鲸智云开发者中心的域名，形如：http://paas.bking.com
 BK_PAAS_HOST = 'http://paas.dev1.com'
 
