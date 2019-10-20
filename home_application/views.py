@@ -33,10 +33,11 @@ def test(request):
     else:
         return JsonResponse({'result': True, "message": "ok"})
     """
-    data = {
-        'username': request.user.username,
-        'time': datetime.datetime.now()
-    }
+    data = request.GET.values
+    # data = {
+    #     'username': request.user.username,
+    #     'time': datetime.datetime.now()
+    # }
     return JsonResponse({'result': True, 'data':data})
 
 def get_app_info(request):
