@@ -21,7 +21,7 @@ def home(request):
     """
     id = request.GET.get('id')
     #考试放开即可 return render_mako_context(request, '/home_application/home.html',{ "id":id})
-    return render_mako_context(request, '/bk_application/test.html', {"id": id})
+    return render_mako_context(request, '/task_application/task_template.html', {"id": id})
 
 def test(request):
     """
@@ -33,12 +33,14 @@ def test(request):
     else:
         return JsonResponse({'result': True, "message": "ok"})
     """
-    data = request.GET.values
+    #for v in request.GET.values():
+
     # data = {
     #     'username': request.user.username,
     #     'time': datetime.datetime.now()
     # }
-    return JsonResponse({'result': True, 'data':data})
+    kes = request.GET
+    return JsonResponse({'result': True, 'message': 'success', 'data': kes})
 
 def get_app_info(request):
     ##data = get_app_info()
