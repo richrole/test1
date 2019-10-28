@@ -21,7 +21,8 @@ def home(request):
     """
     id = request.GET.get('id')
     #考试放开即可 return render_mako_context(request, '/home_application/home.html',{ "id":id})
-    return render_mako_context(request, '/task_application/task_template.html', {"id": id})
+    #return render_mako_context(request, '/task_application/task_template.html', {"id": id})
+    return render_mako_context(request, '/host_application/host.html', {"id": id})
 
 def test(request):
     """
@@ -39,8 +40,18 @@ def test(request):
     #     'username': request.user.username,
     #     'time': datetime.datetime.now()
     # }
-    kes = request.GET
-    return JsonResponse({'result': True, 'message': 'success', 'data': kes})
+    #kes = request.GET
+    data = {
+        'username': u'admin',
+        'phone': '18800000000',
+        'last_login': '2019-10-25 10:00:00',
+        'result': True,
+        'email': 'admin@qq.com'
+    }
+    data_string = json.dumps(data)
+    decoded = json.loads(data_string)
+    print 'decoded: ', decoded
+    return JsonResponse(decoded)
 
 def get_app_info(request):
     ##data = get_app_info()
